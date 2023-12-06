@@ -4,11 +4,12 @@ from src.espiral import Espiral
 class Maquina:
 
     def __init__(self, qtdEspirais: int, maximoProdutos: int):
+        self.espirais = [Espiral()] * qtdEspirais
         self.qtdEspirais = qtdEspirais
         self.maximoProdutos = maximoProdutos
-        self.espirais = [Espiral()] * self.qtdEspirais
-        self.saldoCliente = 0.0
-        self.faturamento = 0.0
+        self.faturamento = 0
+        self.saldo = 0
+        self.troco = 0
 
     def getFaturamento(self) -> float:
         return self.faturamento
@@ -17,40 +18,48 @@ class Maquina:
         return self.maximoProdutos
 
     def getSaldoCliente(self) -> float:
-        return self.saldoCliente
+        return self.saldo
 
     def getSizeEspirais(self) -> int:
-        return len(self.espirais)
+        return self.qtdEspirais
 
-    def getEspiral(self, indice: int) -> Espiral:
-        if 0 <= indice < self.getSizeEspirais():
-            return self.espirais[indice]
+    def getEspiral(self, indice: int) -> Espiral | None:
+        if 0 <= indice < len(self.espirais):
+            produto = self.espirais[indice]
+            if produto.getQuantidade() == 0:
+                self.limparEspiral(indice)
+            return produto
+        return None
 
     def inserirDinheiro(self, value: float) -> bool:
         if value > 0:
-            self.saldoCliente += value
+            self.saldo += value
             return True
-        return False
+        else:
+            return False
 
     def receberTroco(self) -> float:
-        troco = self.saldoCliente
-        self.saldoCliente = 0
-        return troco
+        if self.troco == 0:
+            troco = self.saldo
+            self.saldo = 0
+            return troco
+        return self.troco
 
     def alterarEspiral(self, indice: int, nome: str, quantidade: int, preco: float) -> bool:
-        espiral = self.getEspiral(indice)
-        if espiral and quantidade <= self.getMaximoProdutos():
+        if 0 <= indice < len(self.espirais) and quantidade <= self.maximoProdutos:
+            espiral = Espiral()
             espiral.setNomeDoProduto(nome)
             espiral.setQuantidade(quantidade)
             espiral.setPreco(preco)
+            self.espirais[indice] = espiral
             return True
         else:
             return False
 
     def limparEspiral(self, indice: int) -> bool:
-        espiral = self.getEspiral(indice)
-        if espiral:
-            espiral.setNomeDoProduto(" - ")
+        if 0 <= indice < len(self.espirais):
+            espiral = self.espirais[indice]
+            espiral.setNomeDoProduto(' - ')
             espiral.setQuantidade(0)
             espiral.setPreco(0)
             return True
@@ -58,30 +67,15 @@ class Maquina:
             return False
 
     def vender(self, indice: int) -> bool:
-        espiral = self.getEspiral(indice)
-
-        if espiral and espiral.getQuantidade() > 0 and self.saldoCliente >= espiral.getPreco():
-            # Verifica se há saldo suficiente e se ainda há quantidade disponível na espiral
-
-            if self.saldoCliente >= espiral.getPreco():
-                # Suficiente saldo para a compra
-
-                self.saldoCliente -= espiral.getPreco()
-                self.faturamento += espiral.getPreco()
-                espiral.setQuantidade(espiral.getQuantidade() - 1)
-
-                if espiral.getQuantidade() == 0:
-                    self.limparEspiral(indice)
-
+        if 0 <= indice < len(self.espirais):
+            produto = self.espirais[indice]
+            if produto.getQuantidade() >= 0 and produto.getPreco() <= self.saldo:
+                self.troco = round(self.saldo - produto.getPreco(), 2)
+                self.saldo -= produto.getPreco()
+                produto.setQuantidade(produto.getQuantidade() - 1)
+                self.faturamento += produto.getPreco()
                 return True
-
-        return False
-
-# git commit -m "first commit"
-#   git branch -M main
-#   git remote add origin https://github.com/Suziane90/junkfood-master.git
-#   git push -u origin main
-
-# git remote add origin https://github.com/Suziane90/junkfood-master.git
-#   git branch -M main
-#   git push -u origin main
+            else:
+                return False
+        else:
+            return False
